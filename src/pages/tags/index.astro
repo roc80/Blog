@@ -1,0 +1,73 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
+import { getCollection } from 'astro:content';
+
+const posts = await getCollection('blog');
+
+// 提取所有唯一的标签并按字母顺序排序
+const allTags = [...new Set(posts.flatMap(post => post.data.tags || []))].sort();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={`${SITE_TITLE} | Tags`} description="Browse all tags from our blog posts." />
+    <style>
+      main {
+        width: 960px;
+        margin: 0 auto;
+      }
+      .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      .tag-list li {
+        margin-bottom: 0.5rem;
+      }
+      .tag-list a {
+        text-decoration: none;
+        color: rgb(var(--black));
+        background-color: rgb(var(--gray-light));
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        transition: 0.2s ease;
+      }
+      .tag-list a:hover {
+        background-color: rgb(var(--accent));
+        color: white;
+      }
+      @media (max-width: 720px) {
+        main {
+          width: 100%;
+          padding: 0 1rem;
+        }
+        .tag-list {
+          gap: 0.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <section>
+        <h1>所有标签</h1>
+        <ul class="tag-list">
+          {allTags.map(tag => (
+            <li>
+              <a href={`/tags/${tag}`}>{tag}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </main>
+    <Footer />
+  </body>
+</html>
