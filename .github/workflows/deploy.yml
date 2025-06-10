@@ -3,7 +3,7 @@ name: Deploy Blog to Server
 on:
   push:
     branches:
-      - master
+      - master # 当推送到 'master' 分支时触发
 
 jobs:
   build-and-deploy:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '24' # 确保 Node.js 版本与你的项目兼容
 
       - name: Install dependencies
         run: npm install # 安装项目依赖
@@ -24,28 +24,55 @@ jobs:
       - name: Build Blog
         run: npm run build # 执行 Astro 构建命令
 
+      # --- 添加这个步骤来检查 dist/ 目录内容 ---
+      - name: List built files in dist/
+        run: |
+          echo "Listing contents of ${{ github.workspace }}/dist/"
+          ls -alR ${{ github.workspace }}/dist/
+        # 如果这个步骤显示 dist/ 目录是空的，那么问题出在构建阶段。
+
       - name: Deploy via Rsync
         uses: appleboy/ssh-action@master # 使用 SSH Action 来执行 rsync 命令
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # --- 添加 capture_stdout: true 来捕获 rsync 的输出 ---
+          capture_stdout: true # 捕获 script 块的输出并显示在 Actions 日志中
           script: |
+            set -x # 开启 Shell 调试模式，会打印执行的每一行命令
+            
             # 定义源和目标路径
             SOURCE_DIR="${{ github.workspace }}/dist/" # GitHub Actions 虚拟机上的 dist 目录
             REMOTE_PATH="${{ secrets.REMOTE_PATH }}" # 服务器上的目标路径
 
-            # 确保目标路径存在
+            echo "远程目标路径: $REMOTE_PATH"
+            echo "本地源路径: $SOURCE_DIR"
+
+            # 确保远程目标路径存在
+            # 这里使用 SSH 直接在远程执行 mkdir，确保路径是正确的
             ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "mkdir -p $REMOTE_PATH"
+            echo "远程目标路径已确认或创建。"
+
+            # 检查远程服务器上 rsync 是否可用（这是常见问题）
+            ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "command -v rsync || { echo 'rsync not found on remote server. Please install it.'; exit 1; }"
+            echo "远程服务器上的 rsync 命令已确认存在。"
 
             # Rsync 命令
             # -avz: 归档模式，详细输出，压缩传输
             # --delete: 删除目标目录中源目录不存在的文件
             # --exclude=".user.ini": 排除 .user.ini 文件
-            # --delete-excluded: 确保排除的文件（如 .user.ini）不会被删除，即使它在目标目录中存在
-            # 最后一个参数的斜杠很重要:
-            #   SOURCE_DIR/ 表示同步目录的内容，而不是目录本身
-            #   REMOTE_PATH/ 表示同步到目标目录内部，而不是创建子目录
+            # --delete-excluded: 确保排除的文件（如 .user.ini）不会被删除
+            # 注意：SOURCE_DIR/ 末尾的斜杠表示同步目录的内容，而不是目录本身
+            # REMOTE_PATH/ 末尾的斜杠表示同步到目标目录内部，而不是创建子目录
             rsync -avz --delete --exclude=".user.ini" "$SOURCE_DIR" "${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:$REMOTE_PATH/"
+            
+            # 检查 rsync 命令的退出状态码
+            if [ $? -eq 0 ]; then
+              echo "Rsync 命令执行成功。"
+            else
+              echo "Rsync 命令执行失败。"
+              exit 1
+            fi
 
             echo "Deployment completed successfully using Rsync!"
