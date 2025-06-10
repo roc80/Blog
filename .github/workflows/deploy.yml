@@ -24,42 +24,19 @@ jobs:
       - name: Build Blog
         run: npm run build # 执行 Astro 构建命令
 
-      # --- 添加这个步骤来检查 dist/ 目录内容（调试用，部署成功后可移除） ---
+      # --- 调试用，可选 ---
       - name: List built files in dist/
         run: |
-          echo "Listing contents of ${{ github.workspace }}/dist/"
-          ls -alR ${{ github.workspace }}/dist/
-        # 确认此步骤输出的文件列表是否包含你期望部署的静态文件
+          echo "Listing contents of ./dist/"
+          ls -alR ./dist/
 
+      # 方案1：使用 rsync 直接同步（推荐）
       - name: Deploy via Rsync
-        uses: appleboy/ssh-action@master # 使用 SSH Action 来执行 rsync 命令
+        uses: burnett01/rsync-deployments@6.0.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          capture_stdout: true # 捕获 script 块的输出并显示在 Actions 日志中
-          script: |
-            set -x 
-
-            SOURCE_DIR="${{ github.workspace }}/dist/"
-            REMOTE_PATH="/www/wwwroot/rocli.cn/"
-
-            echo "远程目标路径: $REMOTE_PATH"
-            echo "本地源路径: $SOURCE_DIR"
-
-            ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "mkdir -p $REMOTE_PATH"
-            echo "远程目标路径已确认或创建。"
-
-            ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "command -v rsync || { echo 'rsync not found on remote server. Please install it with: sudo yum install rsync'; exit 1; }"
-            echo "远程服务器上的 rsync 命令已确认存在。"
-
-            rsync -avz --delete --exclude=".user.ini" "$SOURCE_DIR" "${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:$REMOTE_PATH/"
-
-            if [ $? -eq 0 ]; then
-              echo "Rsync 命令执行成功。"
-            else
-              echo "Rsync 命令执行失败。"
-              exit 1
-            fi
-
-            echo "Deployment completed successfully using Rsync!"
+          switches: -avzr --delete --exclude='.user.ini'
+          path: dist/
+          remote_path: /www/wwwroot/rocli.cn/
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USERNAME }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
