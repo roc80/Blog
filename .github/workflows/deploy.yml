@@ -38,39 +38,25 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           capture_stdout: true # 捕获 script 块的输出并显示在 Actions 日志中
-          # --- 关键修改：在 script: 后面添加 | ---
           script: |
-            set -x # 开启 Shell 调试模式，会打印执行的每一行命令
+            # 这里的脚本内容必须有正确的缩进，通常是两个空格
+            # 且不能有多余的缩进，否则 YAML 会解析错误
+            set -x 
             
-            # 定义源和目标路径
-            # github.workspace 变量指向 GitHub Actions 运行器上你的仓库的根目录
             SOURCE_DIR="${{ github.workspace }}/dist/"
-            # 你的实际服务器项目根目录
-            REMOTE_PATH="/www/wwwroot/rocli.cn/" # 直接使用你的实际项目根目录路径
+            REMOTE_PATH="/www/wwwroot/rocli.cn/" # 你的实际项目根目录路径
 
             echo "远程目标路径: $REMOTE_PATH"
             echo "本地源路径: $SOURCE_DIR"
 
-            # 确保远程目标路径存在
-            # -o StrictHostKeyChecking=no 用于在 CI/CD 环境中跳过主机密钥确认
             ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "mkdir -p $REMOTE_PATH"
             echo "远程目标路径已确认或创建。"
 
-            # 检查远程服务器上 rsync 是否可用
-            # rsync 命令在本地（GitHub Actions Runner）执行，但需要远程服务器也安装有 rsync
             ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "command -v rsync || { echo 'rsync not found on remote server. Please install it with: sudo yum install rsync'; exit 1; }"
             echo "远程服务器上的 rsync 命令已确认存在。"
 
-            # Rsync 命令
-            # -avz: 归档模式，详细输出，压缩传输
-            # --delete: 删除目标目录中源目录不存在的文件
-            # --exclude=".user.ini": 排除 .user.ini 文件，避免不可变文件的问题
-            # --delete-excluded: 确保排除的文件（如 .user.ini）不会被删除
-            # 注意 SOURCE_DIR/ 的斜杠表示同步目录的内容，而不是目录本身
-            # 注意 REMOTE_PATH/ 的斜杠表示同步到目标目录内部
             rsync -avz --delete --exclude=".user.ini" "$SOURCE_DIR" "${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:$REMOTE_PATH/"
             
-            # 检查 rsync 命令的退出状态码
             if [ $? -eq 0 ]; then
               echo "Rsync 命令执行成功。"
             else
