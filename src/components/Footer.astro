@@ -1,18 +1,19 @@
 ---
+import WeChatIcon from "../assets/icons/wechat.svg";
+import TelegramIcon from "../assets/icons/telegram.svg";
 const today = new Date();
 ---
 
 <footer>
-	&copy; {today.getFullYear()} Roc. All rights reserved.
 	<div class="social-links">
 		<a href="weixin://dl/chat?L3253559249P" target="_blank">
 			<span class="sr-only">Add me on WeChat</span>
-			<img src="src/assets/icons/wechat.svg" alt="WeChat logo" width="32" height="32" />
+			<WeChatIcon width="32" height="32" aria-hidden="true" />
 		</a>
 
 		<a href="https://t.me/roc1080" target="_blank">
 			<span class="sr-only">Follow me on Telegram</span>
-			<img src="src/assets/icons/telegram.svg" alt="Telegram logo" width="32" height="32" />
+			<TelegramIcon width="32" height="32" aria-hidden="true" />
 		</a>
 
 		<a href="https://x.com/zhudazhu_00" target="_blank">
@@ -29,7 +30,7 @@ const today = new Date();
 				></path></svg
 			>
 		</a>
-		
+
 		<a href="https://github.com/roc80" target="_blank">
 			<span class="sr-only">Go to Astro's GitHub repo</span>
 			<svg
@@ -45,6 +46,12 @@ const today = new Date();
 			>
 		</a>
 	</div>
+	<a
+		href="https://beian.miit.gov.cn/"
+		target="_blank"
+		style="color: #999; font-size: 0.85em;">陕ICP备2025067852号-1</a
+	>
+	&copy; {today.getFullYear()} Roc
 </footer>
 <style>
 	footer {
