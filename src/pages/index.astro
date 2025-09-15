@@ -4,12 +4,17 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import { SITE_TITLE, SITE_DESCRIPTION } from "../consts";
 import { getEntry, render } from "astro:content";
+import * as Counterscale from "@counterscale/tracker";
 
 const home = await getEntry("home", "index");
 if (!home) {
 	throw new Error('Failed to load "index" entry');
 }
 const { Content } = await render(home);
+Counterscale.init({
+    siteId: "rocli.cn",
+    reporterUrl: "https://counterscale.roc80.workers.dev/collect",
+});
 ---
 
 <!doctype html>
